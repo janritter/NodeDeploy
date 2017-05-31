@@ -20,35 +20,31 @@ function runCommand(script, res) {
     fs.readFile(script, function (err, data) {
         if (err) throw err;
         var array = data.toString().split("\n");
-        var output = '{ "commandList" : [';
+        var commandList = [];
+        var overallSuccess = null;
         for (var i = 0; i < array.length; i++) {
             var command = array[i];
             var shellResult = shell.exec(command);
             if (shellResult !== null) {
                 if (shellResult.code !== 0) {
-                    output += '{';
-                    output += '\t"command": "' + command + '",';
-                    output += '\t"success": "' + false + '",';
-                    output += '\t"return": "' + shellResult.stderr + '"';
-                    output += '}';
+                    var output =  {command: command, success: false, response: shellResult.stderr};
+                    commandList[i] = output;
                     res.status(400);
+                    overallSuccess = false;
                     break;
                 } else {
-                    output += '{';
-                    output += '\t"command": "' + command + '",';
-                    output += '\t"success": "' + true + '",';
-                    output += '\t"return": "' + shellResult.stdout + '"';
-                    if (i === array.length - 1) {
-                        output += '}';
-                    } else {
-                        output += '},';
-                    }
+                    var output =  {command: command, success: true, response: shellResult.stdout};
+                    commandList[i] = output;
                     res.status(200);
+                    overallSuccess = true;
                 }
             }
         }
-        output += ']}';
-        res.send(output);
+        var response = {};
+        response.overallSuccess = overallSuccess;
+        response.commandList = commandList;
+
+        res.send(response);
     });
 }
 
