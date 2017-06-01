@@ -5,7 +5,7 @@ var fs = require('fs');
 var https = require('https');
 
 const secret = 'mykey';
-const script = 'echo.sh'
+const script = 'myscript.sh'
 
 /*
  In secureMode NodeDeploy is listening on port 8443 with HTTPS, otherwise on 8080 with HTTP
@@ -13,9 +13,16 @@ const script = 'echo.sh'
  */
 const secureMode = true;
 
+
+var bodyParser = require('body-parser')
+app.use( bodyParser.json() );
+app.use(bodyParser.urlencoded({
+    extended: true
+}));
+
 app.get('/', function (req, res) {
     if (secret !== req.query.secret) {
-        res.status(400);
+        res.status(403);
         res.send("GET - WRONG SECRET");
         return;
     }
@@ -54,6 +61,18 @@ function runCommand(script, res) {
         res.send(response);
     });
 }
+
+app.post('/', function (req, res) {
+    if (secret !== req.body.secret) {
+        res.status(403);
+
+        var response = {"error": "WRONG SECRET"};
+        res.send(response)
+        return;
+    }
+
+    return runCommand(script, res);
+});
 
 if(secureMode === true){
     var privateKey  = fs.readFileSync('server.key', 'utf8');
