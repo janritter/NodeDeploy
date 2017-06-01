@@ -2,9 +2,16 @@ var express = require('express');
 var shell = require('shelljs');
 var app = express();
 var fs = require('fs');
+var https = require('https');
 
 const secret = 'mykey';
-const script = 'yourscript.sh'
+const script = 'echo.sh'
+
+/*
+ In secureMode NodeDeploy is listening on port 8443 with HTTPS, otherwise on 8080 with HTTP
+ For secureMode is a server.crt and server.key named ssl certificate required
+ */
+const secureMode = true;
 
 app.get('/', function (req, res) {
     if (secret !== req.query.secret) {
@@ -48,6 +55,17 @@ function runCommand(script, res) {
     });
 }
 
-app.listen(8080, function () {
-    console.log('NodeDeploy listening on port 8080!');
-});
+if(secureMode === true){
+    var privateKey  = fs.readFileSync('server.key', 'utf8');
+    var certificate = fs.readFileSync('server.crt', 'utf8');
+
+    var httpsServer = https.createServer({key: privateKey, cert: certificate}, app);
+
+    httpsServer.listen(8443, function () {
+        console.log('NodeDeploy listening on port 8443!');
+    })
+}else {
+    app.listen(8080, function () {
+        console.log('NodeDeploy listening on port 8080!');
+    });
+}
