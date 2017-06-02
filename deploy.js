@@ -3,6 +3,7 @@ var shell = require('shelljs');
 var app = express();
 var fs = require('fs');
 var https = require('https');
+var crypto = require('crypto');
 
 const secret = 'mykey';
 const script = 'myscript.sh'
@@ -67,6 +68,25 @@ app.post('/', function (req, res) {
         res.status(403);
 
         var response = {"error": "WRONG SECRET"};
+        res.send(response)
+        return;
+    }
+
+    return runCommand(script, res);
+});
+
+/*
+POST Endpoint for GitHub Webhooks
+ */
+app.post('/github/', function (req, res) {
+    var githubHash = req.header('X-Hub-Signature');
+    console.log('GITHUB HASH - '+githubHash);
+    var myHash = 'sha1='+crypto.createHmac('sha1', secret).update(JSON.stringify(req.body)).digest('hex');
+    console.log('MY HASH - '+myHash);
+    if (githubHash !== myHash) {
+        res.status(403);
+
+        var response = {"error": "Keyed-Hash Message Authentication Code failed"};
         res.send(response)
         return;
     }
