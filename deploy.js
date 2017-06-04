@@ -3,9 +3,10 @@ var shell = require('shelljs');
 var app = express();
 var fs = require('fs');
 var https = require('https');
+var crypto = require('crypto');
 
 const secret = 'mykey';
-const script = 'echo.sh'
+const script = 'myscript.sh'
 
 /*
  In secureMode NodeDeploy is listening on port 8443 with HTTPS, otherwise on 8080 with HTTP
@@ -13,9 +14,16 @@ const script = 'echo.sh'
  */
 const secureMode = true;
 
+
+var bodyParser = require('body-parser')
+app.use( bodyParser.json() );
+app.use(bodyParser.urlencoded({
+    extended: true
+}));
+
 app.get('/', function (req, res) {
     if (secret !== req.query.secret) {
-        res.status(400);
+        res.status(403);
         res.send("GET - WRONG SECRET");
         return;
     }
@@ -54,6 +62,37 @@ function runCommand(script, res) {
         res.send(response);
     });
 }
+
+app.post('/', function (req, res) {
+    if (secret !== req.body.secret) {
+        res.status(403);
+
+        var response = {"error": "WRONG SECRET"};
+        res.send(response)
+        return;
+    }
+
+    return runCommand(script, res);
+});
+
+/*
+POST Endpoint for GitHub Webhooks
+ */
+app.post('/github/', function (req, res) {
+    var githubHash = req.header('X-Hub-Signature');
+    console.log('GITHUB HASH - '+githubHash);
+    var myHash = 'sha1='+crypto.createHmac('sha1', secret).update(JSON.stringify(req.body)).digest('hex');
+    console.log('MY HASH - '+myHash);
+    if (githubHash !== myHash) {
+        res.status(403);
+
+        var response = {"error": "Keyed-Hash Message Authentication Code failed"};
+        res.send(response)
+        return;
+    }
+
+    return runCommand(script, res);
+});
 
 if(secureMode === true){
     var privateKey  = fs.readFileSync('server.key', 'utf8');
