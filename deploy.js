@@ -94,6 +94,21 @@ app.post('/github/', function (req, res) {
     return runCommand(script, res);
 });
 
+/*
+POST Endpoint for Docker Webhooks
+ */
+app.post('/docker/', function (req, res) {
+    if (secret !== req.body.secret) {
+        res.status(403);
+
+        var response = {"error": "WRONG SECRET"};
+        res.send(response)
+        return;
+    }
+
+    return runCommand(script, res);
+});
+
 if(secureMode === true){
     var privateKey  = fs.readFileSync('server.key', 'utf8');
     var certificate = fs.readFileSync('server.crt', 'utf8');
