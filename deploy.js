@@ -98,7 +98,7 @@ app.post('/github/', function (req, res) {
 POST Endpoint for Docker Webhooks
  */
 app.post('/docker/', function (req, res) {
-    if (secret !== req.body.secret) {
+    if (secret !== req.query.secret) {
         res.status(403);
 
         var response = {"error": "WRONG SECRET"};
